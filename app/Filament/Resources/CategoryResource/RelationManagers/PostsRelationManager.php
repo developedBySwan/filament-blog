@@ -1,41 +1,32 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Resources\CategoryResource\RelationManagers;
 
-use App\Filament\Resources\PostResource\Pages;
 use App\Models\Category;
-use App\Models\Post;
-use Closure;
+use Filament\Forms;
 use Filament\Forms\Components\Card;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Form;
-use Filament\Resources\Resource;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\BooleanColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Str;
-use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class PostResource extends Resource
+class PostsRelationManager extends RelationManager
 {
-    protected static ?string $model = Post::class;
+    protected static string $relationship = 'posts';
 
-    protected static ?string $navigationGroup = 'Blog';
-
-    protected static ?string $navigationIcon = 'heroicon-o-book-open';
-
-    protected static ?int $navigationSort = 3;
-
+    protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Form $form): Form
     {
@@ -66,20 +57,15 @@ class PostResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id'),
-                TextColumn::make('title')->limit('20')->searchable(),
+                TextColumn::make('title')->limit('20'),
                 ImageColumn::make('image')->visibility('private'),
                 BooleanColumn::make('is_published'),
-            ])
-            ->filters([
-                Filter::make('is_published')->label('Published')
-                        ->query(fn (Builder $query): Builder => $query->where('is_published', true)),
-                SelectFilter::make('category_id')
-                        ->options(Category::all()->pluck('name', 'id')),
-                Filter::make('created_at')
-                ->form([
-                    DatePicker::make('created_until')->default(now())
                 ])
-                ->query(fn (Builder $query, array $data): Builder => $query->whereDate('created_at','>=',$data)),
+            ->filters([
+                //
+            ])
+            ->headerActions([
+                Tables\Actions\CreateAction::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -88,21 +74,5 @@ class PostResource extends Resource
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
             ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListPosts::route('/'),
-            'create' => Pages\CreatePost::route('/create'),
-            'edit' => Pages\EditPost::route('/{record}/edit'),
-        ];
     }
 }
