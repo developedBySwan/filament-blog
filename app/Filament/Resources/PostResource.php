@@ -3,12 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PostResource\Pages;
-use App\Filament\Resources\PostResource\RelationManagers;
 use App\Models\Category;
 use App\Models\Post;
 use Closure;
-use Filament\Forms;
 use Filament\Forms\Components\Card;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -20,14 +20,22 @@ use Filament\Tables;
 use Filament\Tables\Columns\BooleanColumn;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Str;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Illuminate\Database\Eloquent\Builder;
 
 class PostResource extends Resource
 {
     protected static ?string $model = Post::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-collection';
+    protected static ?string $navigationGroup = 'Blog';
+
+    protected static ?string $navigationIcon = 'heroicon-o-book-open';
+
+    protected static ?int $navigationSort = 3;
+
 
     public static function form(Form $form): Form
     {
@@ -44,7 +52,9 @@ class PostResource extends Resource
                             $set('slug',Str::slug($state));
                         })->required(),
                     TextInput::make('slug')->required(),
-                    SpatieMediaLibraryFileUpload::make('image')->collection('posts'),
+                    FileUpload::make('image')
+                        ->disk('local')
+                        ->directory('public/image/post'),
                     RichEditor::make('content'),
                     Toggle::make("is_published"),
                 ])
@@ -57,11 +67,21 @@ class PostResource extends Resource
             ->columns([
                 TextColumn::make('id'),
                 TextColumn::make('title')->limit('5'),
-                SpatieMediaLibraryImageColumn::make('image')->collection('posts'),
+                ImageColumn::make('image')->visibility('private'),
                 BooleanColumn::make('is_published'),
             ])
             ->filters([
-                //
+                Filter::make('is_published')->label('Published')
+                        ->query(fn (Builder $query): Builder => $query->where('is_published', true)),
+                SelectFilter::make('category_id')
+                        ->options([
+                            1 => 'Tailwind',
+                        ]),
+                Filter::make('created_at')
+                ->form([
+                    DatePicker::make('created_until')->default(now())
+                ])
+                ->query(fn (Builder $query, array $data): Builder => $query->whereDate('created_at','>=',$data)),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
